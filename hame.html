@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Neon Trap Maze</title>
+    <style>
+        body { background: #111; color: #00f2ff; font-family: 'Courier New', Courier, monospace; text-align: center; margin: 0; overflow: hidden; }
+        h2 { text-shadow: 0 0 10px #00f2ff; margin: 15px 0; }
+        
+        #grid { 
+            display: grid; grid-template-columns: repeat(5, 60px); grid-template-rows: repeat(5, 60px); 
+            gap: 10px; justify-content: center; margin-top: 20px;
+        }
+        
+        .cell { 
+            width: 60px; height: 60px; background: #222; border: 1px solid #333; 
+            display: flex; justify-content: center; align-items: center; font-size: 24px; border-radius: 5px;
+        }
+
+        .player { background: #00f2ff !important; color: #000; box-shadow: 0 0 20px #00f2ff; border-radius: 50%; }
+        .trap-triggered { background: #ff00e5 !important; animation: fall 0.5s forwards; }
+        .finish { background: #39ff14; color: #000; font-weight: bold; }
+
+        @keyframes fall {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        #status { margin-top: 20px; font-weight: bold; height: 20px; }
+        .controls { margin-top: 20px; display: grid; grid-template-columns: repeat(3, 50px); gap: 5px; justify-content: center; }
+        button { padding: 10px; background: #333; color: white; border: 1px solid #00f2ff; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h2>TRAP MAZE</h2>
+    <div id="status">Finde den Ausgang (G)!</div>
+    
+    <div id="grid"></div>
+
+    <div class="controls">
+        <div></div><button onclick="move(0, -1)">▲</button><div></div>
+        <button onclick="move(-1, 0)">◀</button><button onclick="move(0, 1)">▼</button><button onclick="move(1, 0)">▶</button>
+    </div>
+
+    <script>
+        const size = 5;
+        let playerPos = { x: 0, y: 0 };
+        const traps = [];
+        const finish = { x: 4, y: 4 };
+
+        // Zufällige Falltüren generieren (ca. 6 Stück)
+        while(traps.length < 6) {
+            let t = { x: Math.floor(Math.random()*size), y: Math.floor(Math.random()*size) };
+            if((t.x !== 0 || t.y !== 0) && (t.x !== 4 || t.y !== 4)) {
+                traps.push(t);
+            }
+        }
+
+        function createGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${x}-${y}`;
+                    if(x === playerPos.x && y === playerPos.y) cell.classList.add('player');
+                    if(x === finish.x && y === finish.y) {
+                        cell.innerText = 'G';
+                        cell.classList.add('finish');
+                    }
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function move(dx, dy) {
+            let nextX = playerPos.x + dx;
+            let nextY = playerPos.y + dy;
+
+            if(nextX >= 0 && nextX < size && nextY >= 0 && nextY < size) {
+                playerPos.x = nextX;
+                playerPos.y = nextY;
+                checkTile();
+                createGrid();
+            }
+        }
+
+        function checkTile() {
+            // Check if trap
+            const isTrap = traps.some(t => t.x === playerPos.x && t.y === playerPos.y);
+            if(isTrap) {
+                document.getElementById('status').innerText = "AAAH! FALLTÜR!";
+                document.getElementById(`cell-${playerPos.x}-${playerPos.y}`).classList.add('trap-triggered');
+                setTimeout(() => {
+                    alert("Du bist in eine Falltür gefallen!");
+                    playerPos = { x: 0, y: 0 };
+                    createGrid();
+                    document.getElementById('status').innerText = "Neuer Versuch...";
+                }, 500);
+            } else if(playerPos.x === finish.x && playerPos.y === finish.y) {
+                alert("Ziel erreicht! Du bist sicher!");
+                location.reload();
+            }
+        }
+
+        createGrid();
+
+        // Tastatursteuerung
+        window.addEventListener('keydown', (e) => {
+            if(e.key === "ArrowUp") move(0, -1);
+            if(e.key === "ArrowDown") move(0, 1);
+            if(e.key === "ArrowLeft") move(-1, 0);
+            if(e.key === "ArrowRight") move(1, 0);
+        });
+    </script>
+</body>
+</html>
