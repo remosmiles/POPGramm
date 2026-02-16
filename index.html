@@ -2,25 +2,144 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Game Launcher</title>
+    <title>Neon Trap Maze - Launcher</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-        button { 
-            padding: 20px 40px; background: none; color: #00f2ff; border: 2px solid #00f2ff; 
-            font-size: 20px; cursor: pointer; text-transform: uppercase; border-radius: 10px;
-            box-shadow: 0 0 15px #00f2ff; transition: 0.3s;
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-magenta: #ff00e5;
         }
-        button:hover { background: #00f2ff; color: #000; box-shadow: 0 0 30px #00f2ff; }
+        body { 
+            background: #050505; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Der Start-Button */
+        #launchBtn { 
+            padding: 25px 50px; 
+            background: transparent; 
+            color: var(--neon-cyan); 
+            border: 3px solid var(--neon-cyan); 
+            font-size: 22px; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            border-radius: 15px;
+            box-shadow: 0 0 20px var(--neon-cyan);
+            transition: 0.3s;
+        }
+        #launchBtn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 40px var(--neon-cyan); }
+
+        /* Das "Fenster" (Modal) */
+        #gameModal {
+            display: none; 
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            background: #111;
+            border: 2px solid var(--neon-magenta);
+            box-shadow: 0 0 50px rgba(255, 0, 229, 0.4);
+            padding: 20px;
+            z-index: 100;
+            text-align: center;
+            border-radius: 15px;
+        }
+
+        .grid { 
+            display: grid; grid-template-columns: repeat(5, 60px); 
+            gap: 10px; justify-content: center; margin: 20px 0;
+        }
+        .cell { 
+            width: 60px; height: 60px; background: #222; border: 1px solid #333; 
+            display: flex; justify-content: center; align-items: center; font-size: 24px;
+        }
+        .player { background: var(--neon-cyan) !important; box-shadow: 0 0 15px var(--neon-cyan); border-radius: 50%; }
+        .trap-triggered { background: var(--neon-magenta) !important; animation: fall 0.5s forwards; }
+        .finish { background: #39ff14; color: black; font-weight: bold; }
+
+        @keyframes fall { 100% { transform: scale(0); opacity: 0; } }
+
+        .close-btn { position: absolute; top: 10px; right: 15px; color: white; cursor: pointer; font-size: 20px; }
     </style>
 </head>
 <body>
-    <button onclick="startGame()">Spiel starten</button>
+
+    <button id="launchBtn" onclick="openGame()">Spiel Starten</button>
+
+    <div id="gameModal">
+        <span class="close-btn" onclick="closeGame()">×</span>
+        <h2 style="color: var(--neon-magenta)">TRAP MAZE</h2>
+        <div id="status" style="font-size: 0.8em; color: var(--neon-cyan);">Vorsicht vor den Fallen!</div>
+        <div class="grid" id="grid"></div>
+        <p style="font-size: 0.7em;">Steuerung mit den Pfeiltasten</p>
+    </div>
 
     <script>
-        function startGame() {
-            // Öffnet das Spiel in einem kleinen Fenster (450x600 Pixel)
-            window.open('game.html', 'TrapMaze', 'width=450,height=600,top=100,left=100');
+        const size = 5;
+        let playerPos = { x: 0, y: 0 };
+        let traps = [];
+        const finish = { x: 4, y: 4 };
+
+        function openGame() {
+            document.getElementById('gameModal').style.display = 'block';
+            resetGame();
         }
+
+        function closeGame() {
+            document.getElementById('gameModal').style.display = 'none';
+        }
+
+        function resetGame() {
+            playerPos = { x: 0, y: 0 };
+            traps = [];
+            while(traps.length < 6) {
+                let t = { x: Math.floor(Math.random()*size), y: Math.floor(Math.random()*size) };
+                if((t.x !== 0 || t.y !== 0) && (t.x !== 4 || t.y !== 4)) {
+                    traps.push(t);
+                }
+            }
+            render();
+        }
+
+        function render() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if(x === playerPos.x && y === playerPos.y) cell.classList.add('player');
+                    if(x === finish.x && y === finish.y) { cell.innerText = 'G'; cell.classList.add('finish'); }
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('gameModal').style.display !== 'block') return;
+            
+            if(e.key === "ArrowUp" && playerPos.y > 0) playerPos.y--;
+            else if(e.key === "ArrowDown" && playerPos.y < size-1) playerPos.y++;
+            else if(e.key === "ArrowLeft" && playerPos.x > 0) playerPos.x--;
+            else if(e.key === "ArrowRight" && playerPos.x < size-1) playerPos.x++;
+
+            const isTrap = traps.some(t => t.x === playerPos.x && t.y === playerPos.y);
+            if(isTrap) {
+                render();
+                document.querySelectorAll('.cell')[playerPos.y * size + playerPos.x].classList.add('trap-triggered');
+                setTimeout(() => { alert("PLOPP! In die Falle getappt!"); resetGame(); }, 400);
+            } else if(playerPos.x === finish.x && playerPos.y === finish.y) {
+                render();
+                setTimeout(() => { alert("GEWONNEN! Du bist ein Profi!"); closeGame(); }, 100);
+            } else {
+                render();
+            }
+        });
     </script>
 </body>
 </html>
